@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using VerySimple.Models;
 
 namespace VerySimple
 {
@@ -6,7 +7,9 @@ namespace VerySimple
     {
         public ViewResult Index()
         {
-            return View();
+            var viewModel = new IndexViewModel(ControllerContext.HttpContext.Request);
+
+            return View(viewModel);
         }
     }
 }

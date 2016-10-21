@@ -1,2 +1,41 @@
-@{ ViewBag.Title = "Hello, World!"; }
-<h1>Hello, World!</h1>
+@model VerySimple.Models.IndexViewModel
+<h1>HTTP request details</h1>
+
+<table class="table table-table">
+	<thead>
+		<tr>
+			<th>Key</th>
+			<th>Value</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>Scheme</td>
+			<td>@Model.Scheme</td>
+		</tr>
+		<tr>
+			<td>IsHTTPS</td>
+			<td>@Model.IsHttps</td>
+		</tr>
+		<tr>
+			<td>Host</td>
+			<td>@Model.Host</td>
+		</tr>
+		<tr>
+			<td>Server hostname</td>
+			<td>@Model.ServerHostName</td>
+		</tr>
+		<tr>
+			<td>X-Forwarded-For</td>
+			<td>@Model.XForwardedFor</td>
+		</tr>
+		<tr>
+			<td>X-Forwarded-Proto</td>
+			<td>@Model.XForwardedProto</td>
+		</tr>
+		<tr>
+			<td>X-Forwarded-Port</td>
+			<td>@Model.XForwardedPort</td>
+		</tr>
+	</tbody>
+</table>
