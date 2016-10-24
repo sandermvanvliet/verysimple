@@ -1,4 +1,6 @@
+using System.IO;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Caching.Distributed;
@@ -14,7 +16,22 @@ namespace VerySimple
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            services.TryAddSingleton<IDistributedCache>(new MyDistributedCache());
+            var dataProtectionBuilder = (IDataProtectionBuilder)services
+                .AddDataProtection(c => c.ApplicationDiscriminator = "VerySimple")
+                .SetApplicationName("VerySimple")
+                .PersistKeysToFileSystem(new DirectoryInfo("/dpapi"));
+
+            var serverName = System.Environment.GetEnvironmentVariable("MYSQLSERVERNAME");
+            if(string.IsNullOrEmpty(serverName))
+            {
+                serverName = "localhost";
+            }
+
+            System.Console.WriteLine("Using MYSQLSERVERNAME: " + serverName);
+            var connectionString = $"Server={serverName};Database=sessionstate;Username=sessionStateUser;Password=aaabbb";
+
+            services.TryAddSingleton<IDistributedCache>(new MyDistributedCache(connectionString));
+        
             services.AddSession();
             services.AddMvc();
         }
@@ -29,6 +46,9 @@ namespace VerySimple
                         });
 
             loggerFactory.AddConsole();
+
+            var serverName = System.Environment.GetEnvironmentVariable("MYSQLSERVERNAME");
+            loggerFactory.CreateLogger("startup").LogInformation("Using MYSQLSERVERNAME: " + serverName);
 
             if (env.IsDevelopment())
             {
