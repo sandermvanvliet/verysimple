@@ -10,22 +10,22 @@ namespace VerySimple
         private static readonly Task CompletedTask = Task.FromResult<object>(null);
         private MySqlConnection _connection;
 
-        public MyDistributedCache()
+        public MyDistributedCache(string connectionString)
         {
-            _connection = new MySqlConnection("Server=localhost;Database=sessionstate;Username=sessionStateUser;Password=aaabbb");
+            _connection = new MySqlConnection(connectionString);
             _connection.Open();
         }
 
         public byte[] Get(string key)
         {
+            DateTime expiryDate = DateTime.MinValue;
+            bool isSlidingExpiration = false;
+            byte[] data = null;
+
             using (var command = new MySqlCommand("SELECT value, size, expiry_date, is_slidingexpiry FROM `data` WHERE `key` = @key", _connection))
             {
                 command.Parameters.Add("key", MySqlDbType.VarChar, 32);
                 command.Parameters["key"].Value = key;
-
-                DateTime expiryDate = DateTime.MinValue;
-                bool isSlidingExpiration = false;
-                byte[] data = null;
 
                 using (var reader = command.ExecuteReader())
                 {
@@ -42,20 +42,20 @@ namespace VerySimple
                         }
                     }
                 }
-
-                if (expiryDate < DateTime.UtcNow)
-                {
-                    Remove(key);
-                    return null;
-                }
-
-                if (isSlidingExpiration)
-                {
-                    Refresh(key);
-                }
-
-                return data;
             }
+
+            if (expiryDate < DateTime.UtcNow)
+            {
+                Remove(key);
+                return null;
+            }
+
+            if (isSlidingExpiration)
+            {
+                Refresh(key);
+            }
+
+            return data;
         }
 
         public void Refresh(string key)
@@ -90,7 +90,7 @@ namespace VerySimple
                 command.Parameters["key"].Value = key;
 
                 var result = command.ExecuteScalar();
-                if(Convert.ToInt32(result) == 1)
+                if (Convert.ToInt32(result) == 1)
                 {
                     insertNew = false;
                 }
