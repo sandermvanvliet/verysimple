@@ -37,5 +37,14 @@
 			<td>X-Forwarded-Port</td>
 			<td>@Model.XForwardedPort</td>
 		</tr>
+		<tr>
+			<td>Session value</td>
+			<td>@Model.SessionValue</td>
+		</tr>
 	</tbody>
 </table>
+
+<form method="POST" action="@Url.Action("SetSessionValue")">
+	<label for="sessionValue">Session value:</label> <input type="text" id="sessionValue" name="sessionValue" /><br />
+	<input type="submit" value="Submit" />
+</form>

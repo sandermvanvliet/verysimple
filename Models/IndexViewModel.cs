@@ -5,7 +5,7 @@ namespace VerySimple.Models
 {
     public class IndexViewModel
     {
-        public IndexViewModel(HttpRequest request)
+        public IndexViewModel(HttpRequest request, ISession session)
         {
             IsHttps = request.IsHttps;
             Scheme = request.Scheme;
@@ -14,6 +14,7 @@ namespace VerySimple.Models
             XForwardedPort = request.Headers["X-Forwarded-Port"];
             Host = request.Headers["Host"];
             ServerHostName = Environment.MachineName;
+            SessionValue = session.GetString("sessionValue");
         }
 
         public bool IsHttps { get; private set; }
@@ -23,5 +24,6 @@ namespace VerySimple.Models
         public string XForwardedProto { get; set; }
         public string Host { get; set; }
         public string ServerHostName { get; set; }
+        public string SessionValue { get; set; }
     }
 }
