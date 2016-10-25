@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
@@ -16,25 +17,31 @@ namespace VerySimple
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
+            var dpApiPath = GetEnvironmentVariableOrDefault("DPAPI_PATH", ".");
+            var serverName = GetEnvironmentVariableOrDefault("MYSQLSERVERNAME", "localhost");
+            
             var dataProtectionBuilder = (IDataProtectionBuilder)services
                 .AddDataProtection(c => c.ApplicationDiscriminator = "VerySimple")
                 .SetApplicationName("VerySimple")
-                .PersistKeysToFileSystem(new DirectoryInfo("/dpapi"));
-
-            var serverName = System.Environment.GetEnvironmentVariable("MYSQLSERVERNAME");
-            if(string.IsNullOrEmpty(serverName))
-            {
-                serverName = "localhost";
-            }
+                .PersistKeysToFileSystem(new DirectoryInfo(dpApiPath));
 
             System.Console.WriteLine("Using MYSQLSERVERNAME: " + serverName);
             var connectionString = $"Server={serverName};Database=sessionstate;Username=sessionStateUser;Password=aaabbb";
 
             services.TryAddSingleton<IDistributedCache>(new MyDistributedCache(connectionString));
-        
+
             services.AddSession();
             services.AddMvc();
         }
+
+        private static string GetEnvironmentVariableOrDefault(string name, string defaultValue)
+        {
+            var value = Environment.GetEnvironmentVariable(name);
+            
+            return string.IsNullOrEmpty(value)
+                ? defaultValue
+                : value;
+        } 
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
