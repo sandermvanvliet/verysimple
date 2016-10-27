@@ -15,7 +15,7 @@ namespace VerySimple
 
         public RedirectToActionResult SetSessionValue(string sessionValue)
         {
-            ControllerContext.HttpContext.Session.SetString("sessionValue", sessionValue);
+            ControllerContext.HttpContext.Session.SetString("sessionValue", sessionValue ?? "");
 
             return RedirectToAction("Index");
         }
