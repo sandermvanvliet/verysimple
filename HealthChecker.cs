@@ -7,15 +7,12 @@ namespace VerySimple
     {
         public static bool Check(IConfiguration configuration)
         {
-            var serverName = configuration["MYSQLSERVERNAME"];
-            var connectionString = $"Server={serverName};Database=sessionstate;Username=sessionStateUser;Password=aaabbb;SslMode=None";
-
             try
             {
-                using (var connection = new MySqlConnection(connectionString))
+                using (var connection = new MySqlConnection(configuration["sessionConnectionString"]))
                 {
                     connection.Open();
-                    
+
                     connection.Close();
                 }
 

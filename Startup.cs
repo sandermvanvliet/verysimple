@@ -30,11 +30,8 @@ namespace VerySimple
                 .SetApplicationName("VerySimple")
                 .PersistKeysToFileSystem(new DirectoryInfo(configuration["DPAPI_PATH"]));
 
-            var serverName = configuration["MYSQLSERVERNAME"];
-            var connectionString = $"Server={serverName};Database=sessionstate;Username=sessionStateUser;Password=aaabbb;SslMode=None";
-
             services.TryAddSingleton<IConfiguration>(configuration);
-            services.TryAddSingleton<IDistributedCache>(new MyDistributedCache(connectionString));
+            services.TryAddSingleton<IDistributedCache>(new MyDistributedCache(configuration["sessionConnectionString"]));
 
             services.AddSession();
             services.AddMvc();
@@ -51,6 +48,13 @@ namespace VerySimple
             {
                 configuration["DPAPI_PATH"] = "dpapi";
             }
+
+            var serverName = configuration["MYSQLSERVERNAME"];
+            var userName = configuration["session.userName"];
+            var password = configuration["session.password"];
+            var database = configuration["session.database"];
+            
+            configuration["sessionConnectionString"] = $"Server={serverName};Database={database};Username={userName};Password={password};SslMode=None";
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
