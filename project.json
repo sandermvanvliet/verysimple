@@ -20,8 +20,8 @@
     "Microsoft.Extensions.Configuration.Json": "1.0.0",
     "Microsoft.Extensions.Configuration.CommandLine": "1.0.0",
     "Microsoft.AspNetCore.Session": "1.0.0",
-    "SapientGuardian.MySql.Data": "6.9.809",
-    "Dapper": "1.50.2"
+    "Dapper": "1.50.2",
+    "MySql.Data.Core": "7.0.4-ir-191"
   },
   "tools": {
     "BundlerMinifier.Core": "2.0.238",

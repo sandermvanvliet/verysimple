@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
@@ -18,39 +17,40 @@ namespace VerySimple
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            // work with with a builder using multiple calls
-            var builder = new ConfigurationBuilder();
-            builder.SetBasePath(Directory.GetCurrentDirectory());
-            builder.AddJsonFile("appsettings.json", true);
-            builder.AddEnvironmentVariables();
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", true)
+                .AddEnvironmentVariables()
+                .Build();
 
-            var configuration = builder.Build();
-            services.TryAddSingleton<IConfiguration>(configuration);
-
-            var dpApiPath = GetSettingOrDefault(configuration, "DPAPI_PATH", ".");
-            var serverName = GetSettingOrDefault(configuration, "MYSQLSERVERNAME", "localhost");
+            InitializeConfigurationDefaults(configuration);
 
             var dataProtectionBuilder = (IDataProtectionBuilder)services
                 .AddDataProtection(c => c.ApplicationDiscriminator = "VerySimple")
                 .SetApplicationName("VerySimple")
-                .PersistKeysToFileSystem(new DirectoryInfo(dpApiPath));
+                .PersistKeysToFileSystem(new DirectoryInfo(configuration["DPAPI_PATH"]));
 
-            System.Console.WriteLine("Using MYSQLSERVERNAME: " + serverName);
-            var connectionString = $"Server={serverName};Database=sessionstate;Username=sessionStateUser;Password=aaabbb";
+            var serverName = configuration["MYSQLSERVERNAME"];
+            var connectionString = $"Server={serverName};Database=sessionstate;Username=sessionStateUser;Password=aaabbb;SslMode=None";
 
+            services.TryAddSingleton<IConfiguration>(configuration);
             services.TryAddSingleton<IDistributedCache>(new MyDistributedCache(connectionString));
 
             services.AddSession();
             services.AddMvc();
         }
 
-        private static string GetSettingOrDefault(IConfigurationRoot configuration, string name, string defaultValue)
+        private void InitializeConfigurationDefaults(IConfigurationRoot configuration)
         {
-            var value = configuration[name];
+            if(string.IsNullOrEmpty(configuration["MYSQLSERVERNAME"]))
+            {
+                configuration["MYSQLSERVERNAME"] = "localhost";
+            }
 
-            return string.IsNullOrEmpty(value)
-                ? defaultValue
-                : value;
+            if(string.IsNullOrEmpty(configuration["DPAPI_PATH"]))
+            {
+                configuration["DPAPI_PATH"] = "dpapi";
+            }
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -64,9 +64,6 @@ namespace VerySimple
 
             loggerFactory.AddConsole();
 
-            var serverName = System.Environment.GetEnvironmentVariable("MYSQLSERVERNAME");
-            loggerFactory.CreateLogger("startup").LogInformation("Using MYSQLSERVERNAME: " + serverName);
-
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -76,11 +73,28 @@ namespace VerySimple
 
             app.UseSession();
 
+            app.Map("/health", HealthCheckEndpoint);
+
             app.UseMvc(routes =>
             {
                 routes.MapRoute(
                     name: "default",
                     template: "{controller=Home}/{action=Index}/{id?}");
+            });
+        }
+
+        private static void HealthCheckEndpoint(IApplicationBuilder appBuilder)
+        {
+            appBuilder.Run(async context =>
+            {
+                var configuration = (IConfiguration)context.RequestServices.GetService(typeof(IConfiguration));
+                
+                var isHealthy = HealthChecker.Check(configuration);
+
+                // 200 for OK, 503 for Service Unavailable
+                context.Response.StatusCode = isHealthy ? 200 : 503;
+                
+                await context.Response.Body.WriteAsync(new byte[0], 0, 0);
             });
         }
     }

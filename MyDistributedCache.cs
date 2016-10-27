@@ -8,21 +8,28 @@ namespace VerySimple
 
     public class MyDistributedCache : IDistributedCache
     {
-        private static readonly Task CompletedTask = Task.FromResult<object>(null);
         private MySqlConnection _connection;
 
         public MyDistributedCache(string connectionString)
         {
             _connection = new MySqlConnection(connectionString);
-            _connection.Open();
         }
 
         public byte[] Get(string key)
         {
-            var session = _connection
-                .QuerySingleOrDefault<Session>(
-                    "SELECT * FROM `sessions` WHERE sessionid = @sessionid",
-                    new { sessionid = key });
+            Session session;
+
+            try
+            {
+                 session = _connection
+                    .QuerySingleOrDefault<Session>(
+                        "SELECT * FROM `sessions` WHERE sessionid = @sessionid",
+                        new { sessionid = key });
+            }
+            catch (Exception)
+            {
+                session = null;
+            }
 
             if (session != null)
             {
@@ -45,26 +52,46 @@ namespace VerySimple
 
         public void Refresh(string key)
         {
-            _connection
-                .Execute(
-                    "UPDATE `sessions` SET expirydate = ADDTIME(expirydate, lifetime) WHERE `sessionid` = @sessionid",
-                    new { sessionid = key });
+            try
+            {
+                _connection
+                    .Execute(
+                        "UPDATE `sessions` SET expirydate = ADDTIME(expirydate, lifetime) WHERE `sessionid` = @sessionid",
+                        new { sessionid = key });
+            }
+            catch (Exception)
+            {
+            }
         }
 
         public void Remove(string key)
         {
-            _connection
-                .Execute(
-                    "DELETE FROM `sessions` WHERE `sessionid` = @sessionid",
-                    new { sessionid = key });
+            try
+            {
+                _connection
+                    .Execute(
+                        "DELETE FROM `sessions` WHERE `sessionid` = @sessionid",
+                        new { sessionid = key });
+            }
+            catch (Exception)
+            {
+            }
         }
 
         public void Set(string key, byte[] value, DistributedCacheEntryOptions options)
         {
-            var session = _connection
-                .QuerySingleOrDefault<Session>(
-                    "SELECT * FROM `sessions` WHERE sessionid = @sessionid",
-                    new { sessionid = key });
+            Session session = null;
+
+            try
+            {
+                session = _connection
+                    .QuerySingleOrDefault<Session>(
+                        "SELECT * FROM `sessions` WHERE sessionid = @sessionid",
+                        new { sessionid = key });
+            }
+            catch (Exception)
+            {
+            }
 
             var insertNew = session == null;
 
@@ -85,6 +112,8 @@ namespace VerySimple
 
             var expiryDate = options.SlidingExpiration.HasValue ? DateTime.UtcNow.Add(options.SlidingExpiration.Value) : options.AbsoluteExpiration.Value;
 
+            try
+            {
             _connection
                 .Execute(commandText,
                 new
@@ -96,6 +125,10 @@ namespace VerySimple
                     lifetime = options.SlidingExpiration.GetValueOrDefault(),
                     isslidingexpiry = options.SlidingExpiration.HasValue
                 });
+            }
+            catch(Exception)
+            {
+            }
         }
 
         public Task<byte[]> GetAsync(string key)
@@ -106,19 +139,19 @@ namespace VerySimple
         public Task RefreshAsync(string key)
         {
             Refresh(key);
-            return CompletedTask;
+            return Task.CompletedTask;
         }
 
         public Task RemoveAsync(string key)
         {
             Remove(key);
-            return CompletedTask;
+            return Task.CompletedTask;
         }
 
         public Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options)
         {
             Set(key, value, options);
-            return CompletedTask;
+            return Task.CompletedTask;
         }
     }
 }
