@@ -22,7 +22,9 @@
     "Microsoft.AspNetCore.Session": "1.0.0",
     "Dapper": "1.50.2",
     "MySql.Data.Core": "7.0.4-ir-191",
-    "Polly": "5.0.1-v5-0-alpha0001"
+    "Polly": "5.0.1-v5-0-alpha0001",
+    "xunit": "2.2.0-beta3-build3402",
+    "dotnet-test-xunit": "2.2.0-preview2-build1029"
   },
   "tools": {
     "BundlerMinifier.Core": "2.0.238",
@@ -67,5 +69,6 @@
   },
   "tooling": {
     "defaultNamespace": "VerySimple"
-  }
+  },
+  "testRunner": "xunit"
 }

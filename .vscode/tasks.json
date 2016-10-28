@@ -11,6 +11,10 @@
             ],
             "isBuildCommand": true,
             "problemMatcher": "$msCompile"
+        },
+        {
+            "taskName": "test",
+            "isTestCommand": true
         }
     ]
 }
