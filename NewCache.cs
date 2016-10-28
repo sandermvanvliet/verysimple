@@ -12,12 +12,15 @@ namespace VerySimple
         private readonly TimeSpan _breakDuration;
         private readonly Policy _dbCircuitBreaker;
 
-        public NewCache()
+        public NewCache(IMySqlRepository<Session> db)
         {
             _cache = new Dictionary<string, Session>();
             _db = new Dictionary<string, Session>();
             _breakDuration = TimeSpan.FromMilliseconds(150);
-            _dbCircuitBreaker = Policy.Handle<MySqlException>().CircuitBreaker(0, _breakDuration);
+            _dbCircuitBreaker = Policy
+                .Handle<MySqlException>()
+                .Or<KeyNotFoundException>()
+                .CircuitBreaker(1, _breakDuration);
         }
 
         /*
@@ -47,11 +50,14 @@ namespace VerySimple
         {
             Session session = null;
 
-            var getFromCachePolicy = Policy
-                .Handle<MySqlException>()
-                .Fallback(() => GetFromCache(key));
-
-            session = getFromCachePolicy.Execute(() => GetFromDb(key));
+            var getPolicy = Policy
+                .Wrap(
+                    Policy.Handle<MySqlException>().Fallback(() => GetFromCache(key)),
+                    Policy.Handle<MySqlException>().Retry(),
+                    Policy.Handle<MySqlException>().CircuitBreaker(2, _breakDuration)
+                );
+            
+            session = getPolicy.Execute(() => GetFromDb(key));
 
             if (session != null)
             {
@@ -81,7 +87,7 @@ namespace VerySimple
         {
             if (!_cache.ContainsKey(key))
             {
-                throw new KeyNotFoundException();
+                return null;
             }
 
             return _cache[key];
@@ -91,7 +97,7 @@ namespace VerySimple
         {
             if (!_db.ContainsKey(key))
             {
-                throw new KeyNotFoundException();
+                return null;
             }
 
             return _db[key];
@@ -104,7 +110,14 @@ namespace VerySimple
 
         private void RefreshInDb(string key)
         {
-            _db[key].ExpiryDate = _db[key].ExpiryDate.Value.Add(_db[key].Lifetime.Value);
+            if(!_db.ContainsKey(key))
+            {
+                throw new KeyNotFoundException();
+            }
+
+            var session = _db[key];
+
+            session.ExpiryDate = session.ExpiryDate.Value.Add(session.Lifetime.Value);
         }
     }
 }
